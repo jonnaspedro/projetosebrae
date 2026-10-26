@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caderno da Equipe Coleta Hack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: caderno de etapas. Barra fixa com equipe + cronômetro, trilha de etapas, uma etapa por vez. */
+:root{
+  --bg:#EAF0E8; --surface:#FBFCF9; --sunken:#DFE8DC; --ink:#14261B; --muted:#4A5D50; --line:#C9D6C7;
+  --accent:#176634; --accent-ink:#F4F7F1; --sun:#F7C548; --sun-ink:#14261B; --warn:#B4471A;
+  --n1:#FBE7A1; --n2:#CDEBD3; --n3:#CFE2F5; --n4:#F7D3C1; --n5:#E3D7F3; --n6:#F2F0C6; --n-ink:#14261B;
+  --display:"Oswald", "Arial Narrow", Arial, sans-serif; --body:"Rubik", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0F1A13; --surface:#17251C; --sunken:#1E3024; --ink:#E9F0E6; --muted:#A9BCAD; --line:#2E4535;
+  --accent:#4FBF72; --accent-ink:#0F1A13; --sun:#F7C548; --sun-ink:#14261B; --warn:#F0895A;
+  --n1:#5A4B17; --n2:#1F4A2C; --n3:#1E3A57; --n4:#5A2E1C; --n5:#3B2E57; --n6:#4A4818; --n-ink:#F1F4EE; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0F1A13; --surface:#17251C; --sunken:#1E3024; --ink:#E9F0E6; --muted:#A9BCAD; --line:#2E4535;
+  --accent:#4FBF72; --accent-ink:#0F1A13; --sun:#F7C548; --sun-ink:#14261B; --warn:#F0895A;
+  --n1:#5A4B17; --n2:#1F4A2C; --n3:#1E3A57; --n4:#5A2E1C; --n5:#3B2E57; --n6:#4A4818; --n-ink:#F1F4EE; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* topo */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--accent-ink)}
+.top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--display);font-size:22px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.brand small{font-family:var(--body);font-size:13px;font-weight:500;letter-spacing:.5px;opacity:.85;text-transform:none;display:block}
+.spacer{flex:1}
+.timer{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.18);padding:4px 6px 4px 12px;border-radius:999px}
+.timer output{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums;min-width:62px;text-align:center}
+.timer.done{background:var(--sun);color:var(--sun-ink)}
+.tbtn{border:0;background:rgba(255,255,255,.16);color:inherit;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:13px;font-weight:500}
+.tbtn:hover{background:rgba(255,255,255,.28)}
+.saved{font-size:13px;opacity:.85}
+
+/* dias e etapas */
+.days{display:flex;gap:8px;flex-wrap:wrap;padding-block:16px 4px}
+.day{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.day.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.steps{display:flex;gap:6px;overflow-x:auto;padding-block:12px;scrollbar-width:thin}
+.step{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;cursor:pointer;text-align:left;min-width:110px}
+.step b{display:block;font-family:var(--display);font-size:17px;font-weight:500}
+.step span{font-size:12px;color:var(--muted)}
+.step[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.step.ok span{color:var(--accent);font-weight:500}
+
+/* etapa */
+main{padding-block:8px 64px}
+.panel{display:flex;flex-direction:column;gap:20px}
+.head{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
+.head h2{font-size:clamp(30px,5vw,44px)}
+.head p{color:var(--muted);max-width:65ch}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.box h3{font-size:20px;font-weight:500}
+.hint{font-size:14px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+label{font-size:14px;font-weight:500;display:flex;flex-direction:column;gap:4px;min-width:0}
+input[type=text],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{resize:vertical;min-height:72px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.row > *{min-width:0}
+.btn{border:0;border-radius:10px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);font-weight:500;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sun{background:var(--sun);color:var(--sun-ink)}
+.btn.small{padding:6px 10px;font-size:14px}
+.btn:hover{filter:brightness(1.07)}
+.x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;border-radius:6px}
+.x:hover{background:var(--sunken);color:var(--warn)}
+.nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.meter{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.meter i{display:block;height:8px;border-radius:99px;background:var(--sunken);flex:1;min-width:80px;overflow:hidden}
+.meter i b{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+
+/* membros */
+.member{display:grid;grid-template-columns:1fr 200px;gap:8px}
+@media (max-width:520px){.member{grid-template-columns:1fr}}
+
+/* listas */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.item .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.item .txt small{display:block;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px dashed var(--accent);color:var(--accent);background:transparent;border-radius:999px;padding:5px 12px;font-size:14px;cursor:pointer}
+.chip:hover{background:var(--sunken)}
+.actor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.6fr) auto;gap:8px;align-items:start}
+@media (max-width:720px){.actor{grid-template-columns:1fr auto}.actor .a-what,.actor .a-pain{grid-column:1/2}}
+
+/* notas */
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.note{position:relative;background:var(--n1);color:var(--n-ink);border-radius:4px 4px 14px 4px;padding:12px 12px 10px;min-height:120px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 0 rgba(0,0,0,.08),0 6px 14px -10px rgba(0,0,0,.4)}
+.note p{flex:1;overflow-wrap:anywhere;font-size:15px}
+.note .cat{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.8}
+.note .x{position:absolute;top:4px;right:4px;color:inherit;opacity:.6}
+.note.example{opacity:.55;border:2px dashed currentColor;box-shadow:none}
+.c1{background:var(--n1)}.c2{background:var(--n2)}.c3{background:var(--n3)}.c4{background:var(--n4)}.c5{background:var(--n5)}.c6{background:var(--n6)}
+.votes{display:flex;align-items:center;gap:6px}
+.vb{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;width:30px;height:30px;cursor:pointer;font-size:18px;line-height:1}
+.dots{flex:1;font-size:14px;font-weight:700;letter-spacing:2px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.legend span{padding:2px 10px;border-radius:999px;color:var(--n-ink)}
+.template{background:var(--sun);color:var(--sun-ink);border-radius:10px;padding:12px 14px}
+
+/* matriz */
+.top5{display:flex;flex-direction:column;gap:10px}
+.rank{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.rank .n{width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700;font-size:14px}
+.rank.chosen{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px}
+.sliders label{flex-direction:row;align-items:center;gap:8px;font-weight:400}
+.sliders input{flex:1;accent-color:var(--accent);min-width:0}
+.sliders output{font-weight:700;font-variant-numeric:tabular-nums;width:1ch}
+.matrix-wrap{display:grid;grid-template-columns:28px minmax(0,1fr);grid-template-rows:minmax(0,1fr) 28px;gap:4px;max-width:440px;width:100%}
+.axis-y{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;color:var(--muted);text-align:center}
+.axis-x{grid-column:2;font-size:12px;color:var(--muted);text-align:center}
+.matrix{position:relative;aspect-ratio:1;max-width:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px}
+.matrix > div{background:var(--sunken);padding:8px;font-size:12px;color:var(--muted)}
+.matrix > .win{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.dot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700;font-size:13px;border:2px solid var(--bg);transition:left .3s,top .3s}
+
+/* big idea */
+.sentence{font-size:19px;line-height:1.5;background:var(--bg);border-left:4px solid var(--accent);padding:12px 14px;border-radius:0 10px 10px 0;overflow-wrap:anywhere}
+.sentence.hmw{border-left-color:var(--sun)}
+.sentence em{font-style:normal;color:var(--muted);border-bottom:1px dashed var(--muted)}
+.ods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.od{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px;cursor:pointer;font-size:13px;font-weight:400;flex-direction:row;background:var(--bg)}
+.od input{accent-color:var(--accent);width:18px;height:18px;flex:none}
+.od b{font-family:var(--display);font-size:20px;min-width:24px}
+.od.star{border-color:var(--accent)}
+.od.star::after{content:"★ desafio";margin-left:auto;font-size:10px;color:var(--accent);font-weight:700;white-space:nowrap}
+.checks{display:flex;flex-direction:column;gap:8px}
+.checks label{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400}
+.checks input{accent-color:var(--accent);width:20px;height:20px;flex:none;margin-top:2px}
+
+/* resumo */
+.pitch{background:var(--ink);color:var(--bg);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.pitch ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:17px}
+.pitch em{font-style:normal;color:var(--sun)}
+.pitch .eyebrow{color:var(--sun)}
+
+/* salvar */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(560px,calc(100vw - 32px));padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .row{justify-content:flex-end}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Coleta Hack<small id="teamLabel">Caderno da Equipe</small></div>
+    <div class="spacer"></div>
+    <div class="timer" id="timer" aria-label="Cronômetro">
+      <output id="tOut">10:00</output>
+      <button class="tbtn" data-min="5">5</button>
+      <button class="tbtn" data-min="8">8</button>
+      <button class="tbtn" data-min="15">15</button>
+      <button class="tbtn" id="tGo">Iniciar</button>
+    </div>
+    <button class="tbtn" id="saveBtn">Salvar / abrir</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="days" aria-label="Dias da maratona">
+    <span class="day on">Dia 1 · Big Idea</span>
+    <span class="day">Dia 2 · Design Thinking</span>
+    <span class="day">Dia 3 · Lean Canvas</span>
+    <span class="day">Dia 4 · Pitch</span>
+  </div>
+  <nav class="steps" id="steps" aria-label="Etapas do Dia 1"></nav>
+</div>
+
+<main class="wrap" id="main"></main>
+
+<dialog id="dlg">
+  <div class="panel">
+    <div class="head"><p class="eyebrow">Guardar o trabalho</p><h2 style="font-size:28px">Salvar ou abrir o caderno</h2>
+    <p class="hint">O caderno salva sozinho neste computador. Para continuar amanhã em outro computador, baixe o arquivo da equipe ou copie o código.</p></div>
+    <div class="row" style="justify-content:flex-start">
+      <button class="btn" id="dl">Baixar arquivo da equipe</button>
+      <button class="btn ghost" id="cp">Copiar código</button>
+      <label class="btn ghost" style="flex-direction:row;cursor:pointer">Abrir arquivo<input type="file" id="file" accept=".json,application/json" hidden></label>
+    </div>
+    <label for="paste">Ou cole aqui o código da equipe
+      <textarea id="paste" placeholder="Cole o código copiado ontem e clique em Carregar"></textarea>
+    </label>
+    <div class="row">
+      <button class="btn ghost" id="resetAsk">Começar caderno novo</button>
+      <button class="btn ghost" id="close">Fechar</button>
+      <button class="btn sun" id="load">Carregar código</button>
+    </div>
+    <div class="box" id="resetBox" hidden>
+      <p><b>Apagar tudo e começar do zero?</b> Baixe o arquivo antes se quiser guardar.</p>
+      <div class="row"><button class="btn ghost" id="resetNo">Cancelar</button><button class="btn" style="background:var(--warn)" id="resetYes">Apagar e começar</button></div>
+    </div>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const KEY = "coletahack-caderno-v1";
+const ROLES = ["Facilitador(a)","Guardião(ã) do tempo","Relator(a)","Pesquisador(a)","Porta-voz"];
+const CATS = [
+  ["c1","Catadoras"],["c2","Separação em casa"],["c3","Canais e alagamento"],
+  ["c4","Coleta e descarte"],["c5","Venda e reciclagem"],["c6","Informação"]
+];
+const ACTORS = ["Catadora autônoma","Cooperativa","Morador de encosta","Comerciante do bairro","Gari e coleta","Prefeitura","Indústria","Escola e estudantes","Condomínio","Atravessador"];
+const ODS = ["Erradicação da pobreza","Fome zero","Saúde e bem-estar","Educação de qualidade","Igualdade de gênero","Água potável e saneamento","Energia limpa","Trabalho decente e crescimento econômico","Indústria, inovação e infraestrutura","Redução das desigualdades","Cidades e comunidades sustentáveis","Consumo e produção responsáveis","Ação contra a mudança do clima","Vida na água","Vida terrestre","Paz, justiça e instituições","Parcerias"];
+const STAR = [5,8,10,11,12,13];
+
+const blank = () => ({
+  team:"", turma:"", members: ROLES.map(r => ({name:"", role:r})),
+  quotes:[], surprise:"", asked:"",
+  actors:[], notes:[], scores:{}, chosen:null,
+  big:{who:"",pain:"",when:"",why:"",act:"",forWho:"",result:"",ods:[],odsWhy:"",proof:""},
+  crit:{a:false,b:false,c:false,d:false},
+  mission:{talk:"",place:"",who:""}, step:0
+});
+let S = load() || blank();
+
+function load(){ try{ const t = localStorage.getItem(KEY); return t ? Object.assign(blank(), JSON.parse(t)) : null }catch(e){ return null } }
+let saveT;
+function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)) }catch(e){} }, 250); headerLabel() }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = (s, el=document) => el.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2,9);
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200) }
+function headerLabel(){ $("#teamLabel").textContent = S.team ? "Equipe " + S.team + (S.turma ? " · " + S.turma : "") : "Caderno da Equipe" }
+
+/* ---------- etapas ---------- */
+const memberCount = () => Math.max(1, S.members.filter(m => m.name.trim()).length || 5);
+const votesUsed = () => S.notes.reduce((a,n)=>a+(n.votes||0),0);
+const ranked = () => S.notes.filter(n=>n.votes>0).sort((a,b)=>b.votes-a.votes).slice(0,5);
+const STEPS = [
+  {k:"Equipe", t:"Quem somos", done:()=>S.team && S.members.filter(m=>m.name.trim()).length>=2},
+  {k:"Escuta", t:"Conversa com a catadora", done:()=>S.quotes.length>=2},
+  {k:"Etapa 1", t:"Quem vive o problema", done:()=>S.actors.length>=5},
+  {k:"Etapa 2", t:"Chuva de problemas", done:()=>S.notes.length>=20},
+  {k:"Etapa 3", t:"Votar e filtrar", done:()=>!!S.chosen},
+  {k:"Etapa 4", t:"Big Idea", done:()=>S.big.who && S.big.pain && S.big.act && S.big.ods.length},
+  {k:"Missão", t:"Para amanhã", done:()=>!!S.mission.talk}
+];
+function renderSteps(){
+  $("#steps").innerHTML = STEPS.map((s,i)=>`<button class="step ${s.done()?"ok":""}" data-i="${i}" aria-current="${i===S.step}"><b>${s.k}</b><span>${s.done()?"✓ feito":s.t}</span></button>`).join("");
+}
+$("#steps").addEventListener("click", e => { const b=e.target.closest(".step"); if(b){ go(+b.dataset.i) } });
+function go(i){ S.step=i; save(); render(); window.scrollTo({top:0,behavior:"smooth"}) }
+function navHTML(){
+  const i=S.step;
+  return `<div class="nav">${i>0?`<button class="btn ghost" data-go="${i-1}">← ${STEPS[i-1].k}</button>`:"<span></span>"}${i<STEPS.length-1?`<button class="btn" data-go="${i+1}">Próxima: ${STEPS[i+1].k} →</button>`:""}</div>`;
+}
+function head(eb, title, text){ return `<div class="head"><p class="eyebrow">${eb}</p><h2>${title}</h2><p>${text}</p></div>` }
+function meter(n, goal, label){ const p=Math.min(100, Math.round(n/goal*100)); return `<div class="meter"><span>${n} de ${goal} ${label}</span><i><b style="width:${p}%"></b></i></div>` }
+
+const VIEWS = [
+/* 0 equipe */ () => `${head("Comece aqui","Quem somos","Deem um nome para a equipe e combinem quem faz o quê. Até 5 pessoas.")}
+  <div class="grid2">
+    <label for="team">Nome da equipe<input type="text" id="team" data-bind="team" placeholder="Ex.: Recicla Jaboatão" value="${esc(S.team)}"></label>
+    <label for="turma">Turma<input type="text" id="turma" data-bind="turma" placeholder="Ex.: 2º ano Informática" value="${esc(S.turma)}"></label>
+  </div>
+  <div class="box"><h3>Integrantes e papéis</h3>
+    ${S.members.map((m,i)=>`<div class="member"><input type="text" id="m${i}" aria-label="Nome do integrante ${i+1}" data-member="${i}" placeholder="Nome ${i+1}" value="${esc(m.name)}">
+      <select id="r${i}" aria-label="Papel do integrante ${i+1}" data-role="${i}">${ROLES.map(r=>`<option ${r===m.role?"selected":""}>${r}</option>`).join("")}</select></div>`).join("")}
+    <p class="hint">Facilitador puxa a conversa · Guardião do tempo cuida do cronômetro lá em cima · Relator digita aqui · Pesquisador busca provas · Porta-voz apresenta.</p>
+  </div>`,
+
+/* 1 escuta */ () => `${head("Escuta · 40 min","Conversa com quem vive o problema","Anotem frases exatas da catadora, do jeito que ela falou. Frase real vale mais que resumo.")}
+  <div class="box"><h3>Frases que ouvimos</h3>
+    <div class="row"><label style="flex:1" for="q">Frase<input type="text" id="q" placeholder="Ex.: “Ninguém separa o vidro, e o vidro corta a gente.”"></label><button class="btn" id="addQ">Anotar</button></div>
+    <div class="list">${S.quotes.map(q=>`<div class="item"><div class="txt">“${esc(q.t)}”</div><button class="x" aria-label="Apagar frase" data-delq="${q.id}">×</button></div>`).join("") || `<p class="hint">Nenhuma frase ainda. O exemplo acima é só modelo.</p>`}</div>
+    ${meter(S.quotes.length,3,"frases")}
+  </div>
+  <div class="grid2">
+    <label for="asked">A pergunta que a equipe fez<textarea id="asked" data-bind="asked" placeholder="Ex.: Qual é a parte mais difícil do seu trabalho?">${esc(S.asked)}</textarea></label>
+    <label for="surprise">O que mais nos surpreendeu<textarea id="surprise" data-bind="surprise" placeholder="O que vocês não sabiam antes da conversa?">${esc(S.surprise)}</textarea></label>
+  </div>`,
+
+/* 2 atores */ () => `${head("Etapa 1 · 15 min","Quem vive esse problema?","Listem pelo menos 5 pessoas ou grupos ligados ao lixo em Jaboatão. Para cada um: o que faz e o que mais incomoda, se possível na voz da pessoa.")}
+  <div class="box"><h3>Toque para adicionar</h3>
+    <div class="chips">${ACTORS.map(a=>`<button class="chip" data-actor="${esc(a)}">+ ${esc(a)}</button>`).join("")}<button class="chip" data-actor="">+ outro</button></div>
+  </div>
+  <div class="box"><h3>Nosso mapa</h3>
+    <div class="list">${S.actors.map(a=>`<div class="actor">
+      <input type="text" id="aw_${a.id}" aria-label="Quem" data-actorf="${a.id}:who" value="${esc(a.who)}" placeholder="Quem">
+      <input type="text" class="a-what" id="ad_${a.id}" aria-label="O que faz" data-actorf="${a.id}:does" value="${esc(a.does)}" placeholder="O que faz">
+      <input type="text" class="a-pain" id="ap_${a.id}" aria-label="O que incomoda" data-actorf="${a.id}:pain" value="${esc(a.pain)}" placeholder="O que incomoda (frase dela/dele)">
+      <button class="x" aria-label="Apagar" data-dela="${a.id}">×</button></div>`).join("") || `<div class="item example"><div class="txt"><b>Exemplo · Catadora autônoma</b><small>Recolhe material na rua e vende · “Ando o dia todo e o atravessador paga pouco.”</small></div></div>`}</div>
+    ${meter(S.actors.length,5,"pessoas ou grupos")}
+  </div>`,
+
+/* 3 chuva */ () => `${head("Etapa 2 · 20 min","Chuva de problemas","8 minutos em silêncio, cada um escreve. Depois 12 minutos lendo em voz alta e pegando carona. Quantidade primeiro: ninguém critica.")}
+  <div class="template"><b>[Quem]</b> tem dificuldade de <b>[o quê]</b> porque <b>[por quê]</b>.</div>
+  <div class="box">
+    <div class="row">
+      <label style="flex:3 1 260px" for="nt">Problema<input type="text" id="nt" placeholder="Ex.: Moradores não separam o lixo porque não sabem o dia da coleta seletiva"></label>
+      <label style="flex:1 1 160px" for="nc">Tema<select id="nc">${CATS.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join("")}</select></label>
+      <button class="btn" id="addN">Colar nota</button>
+    </div>
+    <div class="legend">${CATS.map(c=>`<span class="${c[0]}">${c[1]}</span>`).join("")}</div>
+    ${meter(S.notes.length,20,"notas")}
+  </div>
+  <div class="notes">${S.notes.map(n=>noteHTML(n,false)).join("") || `<div class="note c2 example"><span class="cat">Exemplo · Separação em casa</span><p>Moradores não separam o lixo porque não sabem o dia da coleta seletiva.</p></div>`}</div>`,
+
+/* 4 votar */ () => { const r=ranked(), left=memberCount()*3-votesUsed();
+  return `${head("Etapa 3 · 15 min","Votar e filtrar",`Cada pessoa tem 3 votos. Depois deem nota de 1 a 5 aos mais votados e escolham o que cai no quadrado verde.`)}
+  <div class="box"><div class="row" style="justify-content:space-between;align-items:center"><h3>Votação</h3><p class="${left<0?"":"hint"}" style="${left<0?"color:var(--warn);font-weight:700":""}">${left>=0?`Restam ${left} votos da equipe (${memberCount()} pessoas × 3)`:`Passaram ${-left} votos do limite de ${memberCount()*3}`}</p></div>
+  <div class="notes">${S.notes.map(n=>noteHTML(n,true)).join("") || `<p class="hint">Primeiro escrevam as notas na Etapa 2.</p>`}</div></div>
+  <div class="grid2">
+    <div class="box"><h3>Os 5 mais votados</h3>
+      <div class="top5">${r.map((n,i)=>{ const sc=S.scores[n.id]||{imp:3,via:3}; return `<div class="rank ${S.chosen===n.id?"chosen":""}"><span class="n">${i+1}</span><div style="min-width:0"><p style="overflow-wrap:anywhere">${esc(n.t)} <small class="hint">· ${n.votes} voto${n.votes>1?"s":""}</small></p>
+        <div class="sliders"><label for="imp_${n.id}">Impacto<input type="range" min="1" max="5" id="imp_${n.id}" data-score="${n.id}:imp" value="${sc.imp}"><output>${sc.imp}</output></label>
+        <label for="via_${n.id}">Dá em 6 meses<input type="range" min="1" max="5" id="via_${n.id}" data-score="${n.id}:via" value="${sc.via}"><output>${sc.via}</output></label></div>
+        <button class="btn small ${S.chosen===n.id?"":"ghost"}" style="margin-top:8px" data-choose="${n.id}">${S.chosen===n.id?"✓ Problema escolhido":"Escolher este"}</button></div></div>` }).join("") || `<p class="hint">Votem nas notas acima para aparecerem aqui.</p>`}</div>
+    </div>
+    <div class="box"><h3>Matriz</h3>
+      <div class="matrix-wrap"><div class="axis-y">↑ mais impacto</div>
+        <div class="matrix" id="mx"><div>Importante, mas difícil agora</div><div class="win">Escolham aqui!</div><div>Deixem de lado</div><div>Fácil, mas muda pouco</div>${r.map((n,i)=>dotHTML(n,i)).join("")}</div>
+        <div class="axis-x">mais fácil de resolver em 6 meses →</div></div>
+      <p class="hint">Critérios A e B do edital: sem investimento alto e possível em até 6 meses.</p>
+    </div>
+  </div>` },
+
+/* 5 big idea */ () => { const b=S.big, ch=S.notes.find(n=>n.id===S.chosen);
+  return `${head("Etapa 4 · 15 min","A Big Idea da equipe","Hoje a Big Idea é o problema que vale a pena resolver. A solução vem amanhã.")}
+  ${ch?`<div class="item"><div class="txt"><small>Problema escolhido na votação</small>${esc(ch.t)}</div></div>`:""}
+  <div class="box"><h3>Frase do problema</h3>
+    <div class="grid2">
+      <label for="bw">Quem sofre?<input type="text" id="bw" data-big="who" value="${esc(b.who)}" placeholder="Ex.: as catadoras autônomas de Jaboatão"></label>
+      <label for="bp">Com o quê?<input type="text" id="bp" data-big="pain" value="${esc(b.pain)}" placeholder="Ex.: material misturado e sujo"></label>
+      <label for="bq">Quando / onde?<input type="text" id="bq" data-big="when" value="${esc(b.when)}" placeholder="Ex.: na coleta porta a porta nos bairros"></label>
+      <label for="by">Por que importa?<input type="text" id="by" data-big="why" value="${esc(b.why)}" placeholder="Ex.: perdem renda e se machucam"></label>
+    </div>
+    <p class="sentence" id="s1">${sentence1()}</p>
+  </div>
+  <div class="box"><h3>Pergunta da semana: Como podemos…?</h3>
+    <div class="grid2">
+      <label for="ba">Como podemos…<input type="text" id="ba" data-big="act" value="${esc(b.act)}" placeholder="Ex.: fazer o material chegar separado"></label>
+      <label for="bf">para…<input type="text" id="bf" data-big="forWho" value="${esc(b.forWho)}" placeholder="Ex.: as catadoras"></label>
+      <label for="br">de modo que…<input type="text" id="br" data-big="result" value="${esc(b.result)}" placeholder="Ex.: ganhem mais e trabalhem com segurança"></label>
+    </div>
+    <p class="sentence hmw" id="s2">${sentence2()}</p>
+  </div>
+  <div class="box"><h3>Quais ODS o problema toca?</h3>
+    <p class="hint">★ = os que mais conversam com o desafio Coleta Hack. Marquem 1 a 3.</p>
+    <div class="ods">${ODS.map((o,i)=>`<label class="od ${STAR.includes(i+1)?"star":""}" for="od${i+1}"><input type="checkbox" id="od${i+1}" data-ods="${i+1}" ${b.ods.includes(i+1)?"checked":""}><b>${i+1}</b>${o}</label>`).join("")}</div>
+    <label for="bo">Por que esses ODS?<textarea id="bo" data-big="odsWhy" placeholder="Ex.: ODS 8 porque o problema afeta a renda das catadoras.">${esc(b.odsWhy)}</textarea></label>
+  </div>
+  <div class="box"><h3>Como sabemos que o problema existe?</h3>
+    <label for="bv">Prova: frase da catadora, dado, foto ou notícia<textarea id="bv" data-big="proof" placeholder="Ex.: a catadora disse que…">${esc(b.proof)}</textarea></label>
+  </div>
+  <div class="box"><h3>Passa nos filtros do júri?</h3><div class="checks">
+    ${[["a","A · Dá para resolver sem investimento alto e sem obra da prefeitura"],["b","B · Dá para começar a resolver em até 6 meses"],["c","C · Está ligado à coleta seletiva e às catadoras"],["d","D · Conversa com pelo menos 1 ODS"]].map(([k,t])=>`<label for="cr_${k}"><input type="checkbox" id="cr_${k}" data-crit="${k}" ${S.crit[k]?"checked":""}>${t}</label>`).join("")}
+  </div></div>` },
+
+/* 6 missão */ () => { const m=S.mission;
+  return `${head("Missão até amanhã","Levem o problema para a rua","Amanhã é Design Thinking e começa por conhecer de perto quem sofre o problema.")}
+  ${pitchHTML()}
+  <div class="grid2">
+    <label for="mt">Quem vai conversar com quem?<textarea id="mt" data-mission="talk" placeholder="Ex.: Ana conversa com a vizinha que separa reciclável; João com o dono do mercadinho.">${esc(m.talk)}</textarea></label>
+    <label for="mp">Que lugar vamos observar e fotografar?<textarea id="mp" data-mission="place" placeholder="Ex.: o ponto de lixo perto da escola. Sem mostrar o rosto de ninguém.">${esc(m.place)}</textarea></label>
+  </div>
+  <div class="box"><h3>Antes de sair</h3><p>Clique em <b>Salvar / abrir</b> lá em cima e baixe o arquivo da equipe, ou copie o código e mande no grupo. Amanhã vocês continuam de onde pararam.</p>
+  <div class="row"><button class="btn sun" id="openSave">Salvar o caderno agora</button></div></div>` }
+];
+
+function noteHTML(n, voting){
+  const cat = (CATS.find(c=>c[0]===n.c)||CATS[0]);
+  return `<div class="note ${cat[0]}"><span class="cat">${cat[1]}</span><p>${esc(n.t)}</p>
+    ${voting?`<div class="votes"><button class="vb" aria-label="Tirar voto" data-vote="${n.id}:-1">−</button><span class="dots" aria-label="${n.votes||0} votos">${"●".repeat(n.votes||0)||"<span style='opacity:.5;letter-spacing:0;font-weight:400'>sem voto</span>"}</span><button class="vb" aria-label="Dar voto" data-vote="${n.id}:1">+</button></div>`
+      :`<button class="x" aria-label="Apagar nota" data-deln="${n.id}">×</button>`}</div>`;
+}
+function dotHTML(n,i){
+  const sc=S.scores[n.id]||{imp:3,via:3};
+  const same = ranked().slice(0,i).filter(o=>{const s=S.scores[o.id]||{imp:3,via:3};return s.imp===sc.imp&&s.via===sc.via}).length;
+  const x = 10 + (sc.via-1)/4*80 + same*6, y = 90 - (sc.imp-1)/4*80 + same*6;
+  return `<span class="dot" data-dot="${n.id}" style="left:${x}%;top:${y}%">${i+1}</span>`;
+}
+const fill = (v,ph) => v.trim() ? esc(v.trim()) : `<em>${ph}</em>`;
+function sentence1(){ const b=S.big; return `${fill(b.who,"quem")} sofre com ${fill(b.pain,"a dor")} quando ${fill(b.when,"situação")}, e isso importa porque ${fill(b.why,"consequência")}.` }
+function sentence2(){ const b=S.big; return `Como podemos ${fill(b.act,"ação")} para ${fill(b.forWho,"quem")} de modo que ${fill(b.result,"resultado")}?` }
+function pitchHTML(){ const b=S.big; const o=b.ods.length?b.ods.join(", "):"";
+  return `<div class="pitch"><p class="eyebrow">Para compartilhar · 1 minuto</p><ol>
+    <li>Somos a equipe ${fill(S.team,"nome")}.</li>
+    <li>Escolhemos o problema de ${fill(b.who,"quem")}, que sofre com ${fill(b.pain,"a dor")}.</li>
+    <li>Sabemos disso porque ${fill(b.proof,"a prova")}.</li>
+    <li>Ele toca a ODS ${fill(o,"número")}, e a nossa pergunta é: como podemos ${fill(b.act,"ação")}?</li></ol></div>` }
+
+function render(){ renderSteps(); $("#main").innerHTML = `<section class="panel">${VIEWS[S.step]()}${navHTML()}</section>`; headerLabel() }
+
+/* ---------- eventos ---------- */
+const main = $("#main");
+main.addEventListener("input", e => {
+  const t=e.target, d=t.dataset;
+  if(d.bind){ S[d.bind]=t.value }
+  else if(d.member){ S.members[+d.member].name=t.value }
+  else if(d.actorf){ const [id,f]=d.actorf.split(":"); const a=S.actors.find(x=>x.id===id); if(a) a[f]=t.value }
+  else if(d.big){ S.big[d.big]=t.value; const s1=$("#s1"), s2=$("#s2"); if(s1) s1.innerHTML=sentence1(); if(s2) s2.innerHTML=sentence2() }
+  else if(d.mission){ S.mission[d.mission]=t.value; }
+  else if(d.score){ const [id,f]=d.score.split(":"); S.scores[id]=S.scores[id]||{imp:3,via:3}; S.scores[id][f]=+t.value; t.nextElementSibling.textContent=t.value;
+    const r=ranked(), i=r.findIndex(n=>n.id===id), dot=main.querySelector(`[data-dot="${id}"]`); if(dot&&i>=0){ const tmp=document.createElement("div"); tmp.innerHTML=dotHTML(r[i],i); dot.style.cssText=tmp.firstChild.style.cssText } }
+  else return;
+  save(); renderSteps();
+});
+main.addEventListener("change", e => {
+  const t=e.target, d=t.dataset;
+  if(d.role){ S.members[+d.role].role=t.value }
+  else if(d.ods){ const n=+d.ods; S.big.ods = t.checked ? [...new Set([...S.big.ods,n])].sort((a,b)=>a-b) : S.big.ods.filter(x=>x!==n) }
+  else if(d.crit){ S.crit[d.crit]=t.checked }
+  else return;
+  save(); renderSteps();
+});
+main.addEventListener("keydown", e => {
+  if(e.key!=="Enter") return;
+  if(e.target.id==="nt"){ e.preventDefault(); addNote() }
+  if(e.target.id==="q"){ e.preventDefault(); addQuote() }
+});
+function addNote(){ const i=$("#nt"); const v=i.value.trim(); if(!v){ i.focus(); return }
+  S.notes.push({id:uid(), t:v, c:$("#nc").value, votes:0}); save(); const c=$("#nc").value; render(); $("#nc").value=c; $("#nt").focus(); toast(`Nota ${S.notes.length} colada`) }
+function addQuote(){ const i=$("#q"); const v=i.value.trim(); if(!v){ i.focus(); return }
+  S.quotes.push({id:uid(), t:v}); save(); render(); $("#q").focus() }
+main.addEventListener("click", e => {
+  const b=e.target.closest("button"); if(!b) return; const d=b.dataset;
+  if(d.go){ go(+d.go); return }
+  if(b.id==="addN") return addNote();
+  if(b.id==="addQ") return addQuote();
+  if(b.id==="openSave") return openDlg();
+  if(d.delq){ S.quotes=S.quotes.filter(q=>q.id!==d.delq) }
+  else if("actor" in d){ const id=uid(); S.actors.push({id, who:d.actor, does:"", pain:""}); save(); render(); const f=$(d.actor?`#ad_${id}`:`#aw_${id}`); f&&f.focus(); return }
+  else if(d.dela){ S.actors=S.actors.filter(a=>a.id!==d.dela) }
+  else if(d.deln){ S.notes=S.notes.filter(n=>n.id!==d.deln); if(S.chosen===d.deln) S.chosen=null }
+  else if(d.vote){ const [id,v]=d.vote.split(":"); const n=S.notes.find(x=>x.id===id); if(n){ n.votes=Math.max(0,(n.votes||0)+ +v); if(!n.votes&&S.chosen===id) S.chosen=null } }
+  else if(d.choose){ S.chosen = S.chosen===d.choose ? null : d.choose; const n=S.notes.find(x=>x.id===S.chosen); if(n&&!S.big.pain) S.big.pain=n.t; if(S.chosen) toast("Problema escolhido. Vá para a Etapa 4.") }
+  else return;
+  save(); const y=window.scrollY; render(); window.scrollTo(0,y);
+});
+
+/* ---------- cronômetro ---------- */
+let tLeft=600, tRun=null, tEnd=0;
+const tOut=$("#tOut"), tGo=$("#tGo"), tBox=$("#timer");
+const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+function tick(){ tLeft=Math.max(0,Math.round((tEnd-Date.now())/1000)); tOut.textContent=fmt(tLeft); if(tLeft===0){ stopT(); tBox.classList.add("done"); tGo.textContent="Iniciar"; beep(); toast("Tempo esgotado!") } }
+function stopT(){ clearInterval(tRun); tRun=null }
+tBox.addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.min){ stopT(); tLeft=+b.dataset.min*60; tOut.textContent=fmt(tLeft); tGo.textContent="Iniciar"; tBox.classList.remove("done"); return }
+  if(tRun){ stopT(); tGo.textContent="Continuar" } else { if(tLeft===0) tLeft=600; tBox.classList.remove("done"); tEnd=Date.now()+tLeft*1000; tRun=setInterval(tick,250); tGo.textContent="Pausar" } });
+function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); [0,.35,.7].forEach(t=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.2,c.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,c.currentTime+t+.3); o.start(c.currentTime+t); o.stop(c.currentTime+t+.3) }) }catch(e){} }
+
+/* ---------- salvar / abrir ---------- */
+const dlg=$("#dlg");
+function openDlg(){ $("#resetBox").hidden=true; dlg.showModal ? dlg.showModal() : dlg.setAttribute("open","") }
+$("#saveBtn").onclick=openDlg;
+$("#close").onclick=()=>dlg.close();
+const fileName=()=>`coleta-hack-${(S.team||"equipe").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-")}.json`;
+$("#dl").onclick=()=>{ const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fileName(); document.body.appendChild(a); a.click(); a.remove(); toast("Se o download não começar, use Copiar código") };
+$("#cp").onclick=()=>{ const txt=JSON.stringify(S); const ok=()=>toast("Código copiado. Cole no grupo da equipe.");
+  try{ navigator.clipboard.writeText(txt).then(ok,()=>fallback(txt)) }catch(e){ fallback(txt) } };
+function fallback(txt){ const p=$("#paste"); p.value=txt; p.select(); toast("Código selecionado. Use Ctrl+C para copiar.") }
+function applyData(txt){ try{ const d=JSON.parse(txt); if(!d||typeof d!=="object"||!Array.isArray(d.notes)) throw 0; S=Object.assign(blank(),d); save(); render(); dlg.close(); toast("Caderno carregado") }catch(e){ toast("Esse código não é de um Caderno da Equipe. Confira se copiou inteiro.") } }
+$("#load").onclick=()=>{ const v=$("#paste").value.trim(); if(v) applyData(v); else $("#paste").focus() };
+$("#file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>applyData(r.result); r.readAsText(f); e.target.value="" };
+$("#resetAsk").onclick=()=>{ $("#resetBox").hidden=false };
+$("#resetNo").onclick=()=>{ $("#resetBox").hidden=true };
+$("#resetYes").onclick=()=>{ S=blank(); try{ localStorage.removeItem(KEY) }catch(e){} render(); dlg.close(); toast("Caderno novo aberto") };
+
+render();
+</script>
+
+</body>
+</html>
